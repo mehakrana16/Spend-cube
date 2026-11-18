@@ -1,0 +1,39 @@
+# Company B: metal packaging, 8 ERPs, 25 currencies, USD reporting, no supplier names
+name: B
+reporting_currency: USD
+date_valid_range: ["2023-06-01", "2025-03-31"]
+date_formats: ["%Y-%m-%d"]
+fx: {file: fx_rates_usd.csv, currency_col: currency, month_col: month, rate_col: units_per_usd, date_column: posting_date}
+sources:
+  lines:
+    file: invoice_lines.csv
+    id_column: line_id
+    columns:
+      date: invoice_date
+      vendor_id: vendor_id
+      description: line_description
+      item_code: material_number
+      po: po_number
+      invoice_number: invoice_number
+      quantity: quantity
+    amount: {column: line_amount, gross: false}
+    currency: {column: currency, rate_column: currency_rate}   # rate = units of line ccy per 1 USD
+exclusions:
+  - reason: NON_PROCUREMENT
+    why: intercompany GL accounts
+    any:
+      - {field: raw_gl_account_description, regex: '^\s*(IC\s?\d*\b|I/?C\b|IC Payable|Inter-?company)'}
+  - reason: NON_PROCUREMENT
+    why: tax lines (sales/state/GST/VAT/withholding)
+    any:
+      - {field: description, regex: '^\s*(state\s*&\s*local taxes|sales tax|gst input tax|vat\b|input tax|use tax|withholding tax|income tax)'}
+taxonomy: {file: taxonomy_B.csv, level_columns: [category_l1, category_l2, category_l3]}
+labels:
+  file: seed_labels.csv
+  id_column: line_id
+  level_columns: [category_l1, category_l2, category_l3]
+classify:
+  text: [description]
+  extra_text: [raw_gl_account_description, raw_material_number]
+supplier: {use_vendor_id: true, name_threshold: 0.88}
+item: {use_item_code: true, text_threshold: 0.93}

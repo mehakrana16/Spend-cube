@@ -1,0 +1,37 @@
+# TEMPLATE for the blind-test company C (one invoice-line file + one tree, no labels).
+# Copy to submission/C.yaml, then fill in the column names from the new CSV header. NO code changes needed.
+name: C
+reporting_currency: USD
+date_valid_range: ["2015-01-01", "2026-12-31"]
+date_formats: ["%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%d-%b-%y"]
+# fx: {file: fx_rates_usd.csv, currency_col: currency, month_col: month, rate_col: units_per_usd}   # only if C ships FX rates
+sources:
+  lines:
+    file: REPLACE_invoice_file.csv
+    id_column: REPLACE_line_id_column
+    columns:
+      date: REPLACE_date_column
+      supplier: REPLACE_supplier_name_column       # remove the line if there is none
+      vendor_id: REPLACE_vendor_id_column          # remove the line if there is none
+      description: [REPLACE_description_column]    # list = several text columns joined
+      item_code: REPLACE_item_code_column          # remove if none
+      po: REPLACE_po_column
+      invoice_number: REPLACE_invoice_number_column
+      quantity: REPLACE_quantity_column
+      status: REPLACE_status_column                # remove (and the status block) if none
+    amount: {column: REPLACE_amount_column, gross: false}     # gross: true + vat_column if amounts include tax
+    currency: {column: REPLACE_currency_column}               # or {fixed: USD}
+    status:
+      include: [approved, paid]
+      cancelled: [cancelled, canceled, void]
+exclusions:            # add regexes for taxes / intercompany / revenue / royalties / financing found in the data
+  - reason: NON_PROCUREMENT
+    any:
+      - {field: description, regex: '(?i)\b(intercompany|inter-company|royalt(y|ies)|income tax|vat payable|interest expense|bank charges)\b'}
+taxonomy: {file: REPLACE_taxonomy_C.csv, level_columns: [REPLACE_l1_col, REPLACE_l2_col, REPLACE_l3_col, REPLACE_l4_col]}
+classify:
+  text: [description]
+  extra_text: []       # e.g. [raw_account_description] to help when descriptions are blank
+  llm: {enabled: auto} # uses the LLM automatically when ANTHROPIC_API_KEY is set; otherwise local model
+supplier: {use_vendor_id: true, name_threshold: 0.9}
+item: {use_item_code: true, text_threshold: 0.93}

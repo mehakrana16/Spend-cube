@@ -1,0 +1,7 @@
+data/*
+!data/README.txt
+.venv/
+__pycache__/
+*.pyc
+.env
+.llm_cache.json

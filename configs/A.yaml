@@ -1,0 +1,64 @@
+# Company A: mining, ZAR, two systems (SAP goods receipts = net, AP tool = gross)
+name: A
+reporting_currency: ZAR
+date_valid_range: ["2019-01-01", "2025-12-31"]
+date_formats: ["%Y-%m-%d", "%d/%m/%Y", "%d-%b-%y"]
+sources:
+  erp:
+    file: erp_goods_receipts.csv
+    id_prefix: "ERP:"
+    id_column: line_id
+    columns:
+      date: posting_date
+      supplier: supplier_name
+      vendor_id: vendor_id
+      description: [material_short_text, service_short_text]
+      item_code: material_number
+      po: po_number
+      po_item: po_item
+      quantity: quantity
+    amount: {column: value_zar, gross: false}
+    currency: {fixed: ZAR}
+  tool:
+    file: invoice_tool_export.csv
+    id_prefix: "TOOL:"
+    id_column: tool_record_id
+    columns:
+      date: invoice_date
+      supplier: supplier_name_as_captured
+      description: line_text
+      po: po_reference
+      invoice_number: invoice_number
+      quantity: quantity
+      status: status
+    amount: {column: gross_amount, gross: true, vat_column: vat_rate, vat_default: 0.15}
+    currency: {column: currency}
+    status:
+      include: [approved, paid]
+      cancelled: [cancelled, canceled, void]
+match:
+  primary: erp          # counted record
+  secondary: tool       # excluded as DUPLICATE when it is the same purchase
+  po_regex: '(\d{10})'
+  po_item_regex: '/(\d+)'
+  amount_tolerance: 0.001
+  fallback_without_po: true
+  fallback_text_similarity: 0.6
+  secondary_dedupe: true
+exclusions: []            # no non-procurement rows found in A (see DECISIONS.md)
+taxonomy: {file: taxonomy_A.csv, level_columns: [category_l1, category_l2, category_l3]}
+labels:
+  file: labels_A.csv
+  id_column: record_id
+  level_columns: [category_l1, category_l2, category_l3]
+  supplier_key: supplier_key
+  item_key: item_key
+classify:
+  text: [description]
+  extra_text: [raw_spend_type, raw_material_type]
+supplier: {use_vendor_id: true, name_threshold: 0.9, unmapped_bucket: true}
+item:
+  use_item_code: true
+  text_threshold: 0.93
+  bucket_rules: [{field: raw_spend_type, values: [Catalogue, Free Text]}]   # placeholder codes, see DECISIONS.md
+  bucket_key: ITM-UNCATALOGUED
