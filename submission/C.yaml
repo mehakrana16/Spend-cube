@@ -1,0 +1,34 @@
+# Company C (oil & gas operator, USD, one invoice-line file, 4-level tree, no labels). Config only, no code changes.
+name: C
+reporting_currency: USD
+date_valid_range: ["2022-01-01", "2026-12-31"]
+date_formats: ["%m/%d/%Y"]            # month first: 14,100 rows have a second part > 12, none a first part > 12
+sources:
+  lines:
+    file: invoice_lines_7c60cd.csv
+    id_column: line_id
+    columns:
+      date: invoice_date
+      supplier: supplier_name
+      description: [line_description]
+      item_code: product_service_code
+      invoice_number: invoice_number
+      quantity: quantity
+      status: status
+    amount: {column: line_amount_usd, gross: false}
+    currency: {fixed: USD}
+    status:
+      include: [approved, paid]
+      cancelled: [cancelled, canceled, void]
+exclusions:
+  - reason: NON_PROCUREMENT
+    why: GL accounts that are revenue, royalties, taxes, receivables/clearing, partner (JIB) billing, financing costs, payroll deductions, internal gas revenue
+    any:
+      - {field: raw_gl_account_description, regex: '(?i)(revenue|\brev\.|royalt|\btax(es)?\b|ad valorem|severance|\bJIB\b|receivable|deposits clearing|debt issuance|employee deductions|interco|affiliate)'}
+taxonomy: {file: category_tree_C.csv, level_columns: [level_1, level_2, level_3, level_4]}
+classify:
+  text: [description]
+  extra_text: [raw_gl_account_description]     # kept short on purpose: 148 leaf classes x long text exhausts memory
+  llm: {enabled: auto, rpm: 12, batch_size: 60}   # uses Gemini when GEMINI_API_KEY is set in the terminal; otherwise local model
+supplier: {use_vendor_id: false, name_threshold: 0.9}
+item: {use_item_code: true, text_threshold: 0.93}
