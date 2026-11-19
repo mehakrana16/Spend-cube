@@ -32,11 +32,15 @@ python -m spendcube.run --config configs/A.yaml --hide-labels --evaluate      # 
 python scripts/holdout.py configs/A.yaml                                      # honest supervised hold-out
 ```
 
-## Optional LLM step
-If `ANTHROPIC_API_KEY` is set, unlabelled classification (e.g. company C) automatically asks an LLM
-(default `claude-haiku-5-5`, set `classify.llm.model`) to pick the leaf for each unique description; answers are cached in
-`.llm_cache.json`. Without a key (or if a call fails) the local zero-label model is used, so the tool always runs.
-Never commit your key; set it only in your terminal: `$env:ANTHROPIC_API_KEY="..."` (PowerShell).
+## Optional LLM step (free option available)
+Unlabelled classification (e.g. company C) can ask an LLM to pick the leaf for each unique description. It switches on by itself
+when a key is present in your terminal, in this order: `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` (Google AI Studio free tier, no card),
+`GROQ_API_KEY` (free tier). A local model via Ollama also works (`classify.llm.provider: ollama`, no key, data stays on your machine).
+For Gemini the usable model is discovered automatically from the key (set `classify.llm.model` to override). Free tiers are rate limited, so calls
+are paced (`rpm`, `batch_size`) and answers are cached in `.llm_cache.json`. No key, or any failure -> local zero-label model, so the
+tool always runs unattended. Never commit a key; set it only in the terminal: `$env:GEMINI_API_KEY="..."` (PowerShell).
+Quick live check: `python scripts/test_llm.py configs/B.yaml data 300`.
+Used for the blind test on company C: Gemini free tier (auto-selected model). Not used on A2/B2 (labels exist, supervised model).
 
 ## Layout
 `spendcube/prepare.py` ingest + amounts/tax/FX/dates · `match.py` count-once matching · `exclude.py` reason codes ·
